@@ -4,20 +4,28 @@ on:
   push:
     branches: [ "main" ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    env: FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify Files (Debug)
+        run: ls -la
+
       - name: Build Docker Image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-app ./app
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-app:latest .
 
       - name: Login to DockerHub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Push Image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/devops-app
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/devops-app:latest
