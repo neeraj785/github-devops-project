@@ -12,13 +12,9 @@ jobs:
 build-and-deploy:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout
     uses: actions/checkout@v4
-
-  - name: Verify Files (Debug)
-    run: ls -la
 
   - name: Login to DockerHub
     run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
@@ -29,7 +25,7 @@ steps:
   - name: Push Docker Image
     run: docker push $IMAGE_NAME:${{ github.sha }}
 
-  - name: Configure AWS Credentials
+  - name: Configure AWS
     uses: aws-actions/configure-aws-credentials@v4
     with:
       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
@@ -43,4 +39,3 @@ steps:
     run: |
       kubectl set image deployment/devops-deployment devops-container=$IMAGE_NAME:${{ github.sha }}
       kubectl apply -f k8s/
-```
