@@ -1,15 +1,15 @@
-name: CI Pipeline
+name: CI-CD Pipeline
 
 on:
 push:
-branches: [ "main" ]
+branches:
+- main
 
 env:
-FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/devops-app
 
 jobs:
-
-build:
+build-and-deploy:
 runs-on: ubuntu-latest
 
 ```
@@ -21,26 +21,15 @@ steps:
     run: ls -la
 
   - name: Login to DockerHub
-    run: |
-      echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
   - name: Build Docker Image
-    run: |
-      docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-app:latest ./app
+    run: docker build -t $IMAGE_NAME:${{ github.sha }} ./app
 
-  - name: Push Image
-    run: |
-      docker push ${{ secrets.DOCKER_USERNAME }}/devops-app:latest
+  - name: Push Docker Image
+    run: docker push $IMAGE_NAME:${{ github.sha }}
 
-deploy:
-needs: build
-runs-on: ubuntu-latest
-
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-
-  - name: Configure AWS
+  - name: Configure AWS Credentials
     uses: aws-actions/configure-aws-credentials@v4
     with:
       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
@@ -48,10 +37,10 @@ steps:
       aws-region: ap-south-1
 
   - name: Update kubeconfig
-    run: |
-      aws eks update-kubeconfig --region ap-south-1 --name neeraj-cluster
+    run: aws eks update-kubeconfig --region ap-south-1 --name neeraj-cluster
 
   - name: Deploy to Kubernetes
     run: |
+      kubectl set image deployment/devops-deployment devops-container=$IMAGE_NAME:${{ github.sha }}
       kubectl apply -f k8s/
-
+```
