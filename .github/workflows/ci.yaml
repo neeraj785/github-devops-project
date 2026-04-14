@@ -1,54 +1,57 @@
 name: CI Pipeline
 
 on:
-  push:
-    branches: [ "main" ]
+push:
+branches: [ "main" ]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+build:
+runs-on: ubuntu-latest
 
-      - name: Verify Files (Debug)
-        run: ls -la
+```
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-      - name: Build Docker Image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-app:latest ./app
+  - name: Verify Files (Debug)
+    run: ls -la
 
-      - name: Login to DockerHub
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+  - name: Login to DockerHub
+    run: |
+      echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Push Image
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/devops-app:latest
+  - name: Build Docker Image
+    run: |
+      docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-app:latest ./app
 
-  deploy:
-  needs: build
-  runs-on: ubuntu-latest
+  - name: Push Image
+    run: |
+      docker push ${{ secrets.DOCKER_USERNAME }}/devops-app:latest
 
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+deploy:
+needs: build
+runs-on: ubuntu-latest
 
-    - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-        aws-region: ap-south-1
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-    - name: Update kubeconfig
-      run: |
-        aws eks update-kubeconfig --region ap-south-1 --name <cluster-name>
+  - name: Configure AWS
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+      aws-region: ap-south-1
 
-    - name: Deploy to Kubernetes
-      run: |
-        kubectl apply -f k8s/
+  - name: Update kubeconfig
+    run: |
+      aws eks update-kubeconfig --region ap-south-1 --name neeraj-cluster
+
+  - name: Deploy to Kubernetes
+    run: |
+      kubectl apply -f k8s/
+
